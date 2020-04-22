@@ -18,7 +18,7 @@ def euclidean(a, b):
 
 # Miller-Rabin as it is shown in the book
 def mr_test(n, s):
-    print(n, s)
+    # print(n, s)
     for j in range(1, s):
         # random
         a = random.randint(1, n - 1)
@@ -30,7 +30,16 @@ def mr_test(n, s):
 
 # adapted from the pseudo code from page 969 in the book
 def witness(a, n):
-    u, t = 1, 1
+    # calculate t
+    t = 1
+    sub_n = (n-1) >> 1
+    while (sub_n & 1) != 0:
+        sub_n = sub_n >> 1
+        t += 1
+
+    u = (n-1)//(2**t)
+    # print("T and U are be", t, u)
+
     x = gmpy2.powmod(a, u, n)
 
     previous = x
@@ -38,11 +47,10 @@ def witness(a, n):
     for i in range(t):
         # current is x_i
         # previous is x_i - 1
-        current = (previous ^ 2) % n
+        current = (previous ** 2) % n
         if current == 1 and previous != 1 and previous != n-1:
             return True
         previous = current
-
     if current != 1:
         return True
     return False
@@ -50,16 +58,19 @@ def witness(a, n):
 
 def main():
     print("#####   Part 1A   #####")
-    bits = int(input("Enter your desired modulus size: "))
-    print("Modulus ize of", bits, "bits selected.")
+    bits = 2048 # int(input("Enter your desired modulus size: "))
+    print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes
-    s = 50
-    prime1 = random.randint(2, 2 ^ bits - 1)
+    s = 10
+    prime1 = random.randint(2, (2 ** bits) - 1)
+    # print(prime1)
     if prime1 & 1 == 0:
         prime1 += 1
     while mr_test(prime1, s) != PRIME:
+        # print("incrementing prime by 2")
         prime1 += 2
+    print("Calculated", bits, "bit prime:")
     print(prime1)
 
 
