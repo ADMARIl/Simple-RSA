@@ -77,15 +77,28 @@ def getPrime(size, s):
     return curr_prime
 
 
-def publicKey(size):
+def getKeys(size):
+    # calculate primes
     s = 50
     primeP = getPrime(size // 2, s)
     primeQ = getPrime(size // 2, s)
+    # calculate public key
+    n = primeP * primeQ
     print("---- BEGIN PUBLIC KEY ----")
-    print(E_EXPO, end="")
+    print("(", E_EXPO, end="")
     print(", ", end='')
-    print(primeP * primeQ)
+    print(n, ")")
     print("---- END PUBLIC KEY ----")
+    # calculate private key
+    calc_gcd, ex, ny = euclidean(E_EXPO, primeP * primeQ)
+    d = ex // E_EXPO
+    print("---- BEGIN PRIVATE KEY ----")
+    print("(", d, end="")
+    print(", ", end='')
+    print(n, ")")
+    print("---- END PRIVATE KEY ----")
+
+    return n, d
 
 
 def main():
@@ -94,7 +107,7 @@ def main():
     print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes
-    publicKey(bits)
+    getKeys(bits)
 
 
 if __name__ == "__main__":
