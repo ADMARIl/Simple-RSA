@@ -90,24 +90,47 @@ def getKeys(size):
     print(n, ")")
     print("---- END PUBLIC KEY ----")
     # calculate private key
-    calc_gcd, ex, ny = euclidean(E_EXPO, primeP * primeQ)
-    d = ex // E_EXPO
+    calc_gcd, ex, ny = euclidean(E_EXPO, (primeP-1)*(primeQ-1))
+    d = ex
+    # d = int(d)
     print("---- BEGIN PRIVATE KEY ----")
     print("(", d, end="")
     print(", ", end='')
     print(n, ")")
     print("---- END PRIVATE KEY ----")
+#    print("\n\n")
+#    print(d*E_EXPO)
+#    print(1 % ((primeP-1) * (primeQ - 1)))
 
     return n, d
 
 
 def main():
     print("#####   Part 1A   #####")
-    bits = int(input("Enter your desired modulus size: "))
+    bits = 1024  # int(input("Enter your desired modulus size: "))
     print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes
-    getKeys(bits)
+    n, d = getKeys(bits)
+
+    message = "I deserve an A"
+    print("Before encrypt:", message)
+    x = 0
+    for c in message:
+        x = x << 8
+        x = x ^ ord(c)
+
+    # message_num = 4
+    #  print(x)
+    c = gmpy2.powmod(x, E_EXPO, n)
+    # print("C:", c)
+    m = gmpy2.powmod(c, d, n)
+    # print("M:", m)
+
+    print(x)
+    print(m)
+    if m == x:
+        print("RSA Successful!")
 
 
 if __name__ == "__main__":
