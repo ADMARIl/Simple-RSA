@@ -3,7 +3,7 @@ File: part1a.py
 Created by Andrew Ingson (aings1@umbc.edu)
 Date: 4/22/2020
 CMSC 441 Intro to Algorithms
-Notes: The pdf on the RSA steps seems to be very helpful
+Notes: Run the program in a python 3 environment in order to build
 
 """
 import random
@@ -107,7 +107,7 @@ def getKeys(size):
 
 def main():
     print("#####   Part 1A   #####")
-    bits = 1024  # int(input("Enter your desired modulus size: "))
+    bits = int(input("Enter your desired modulus size: "))
     print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes
@@ -123,7 +123,7 @@ def main():
     # message_num = 4
     #  print(x)
     c = gmpy2.powmod(x, E_EXPO, n)
-    # print("C:", c)
+    print("C:", c)
     m = gmpy2.powmod(c, d, n)
     # print("M:", m)
 
