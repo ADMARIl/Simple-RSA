@@ -88,6 +88,7 @@ def getKeys(size):
     primeQ = getPrime(size // 2, s)
     # calculate public key
     n = primeP * primeQ
+    phi = (primeP - 1) * (primeQ - 1)
     print("---- BEGIN PUBLIC KEY ----")
     print("(", E_EXPO, end="")
     print(", ", end='')
@@ -95,7 +96,8 @@ def getKeys(size):
     print("---- END PUBLIC KEY ----")
     # calculate private key
     calc_gcd, ex, ny = euclidean(E_EXPO, (primeP-1)*(primeQ-1))
-    d = ex
+    # make sure d is positive
+    d = ex % phi
     print("---- BEGIN PRIVATE KEY ----")
     print("(", d, end="")
     print(", ", end='')
@@ -116,10 +118,12 @@ def main():
     # numberify message
     message = "I deserve an A"
     print("Before encrypt:", message)
+
     x = 0
     for c in message:
         x = x << 8
         x = x ^ ord(c)
+    print("Message int:", x)
 
     # encrypt the message
     c = gmpy2.powmod(x, E_EXPO, n)
