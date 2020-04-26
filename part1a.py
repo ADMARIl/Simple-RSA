@@ -86,6 +86,9 @@ def getKeys(size):
     s = 50
     primeP = getPrime(size // 2, s)
     primeQ = getPrime(size // 2, s)
+    # check that primes aren't equal
+    while primeP == primeQ:
+        primeQ = getPrime(size // 2, s)
     # calculate public key
     n = primeP * primeQ
     phi = (primeP - 1) * (primeQ - 1)
