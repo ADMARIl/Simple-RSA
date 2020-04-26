@@ -95,7 +95,7 @@ def getKeys(size):
     print(n, ")")
     print("---- END PUBLIC KEY ----")
     # calculate private key
-    calc_gcd, ex, ny = euclidean(E_EXPO, (primeP-1)*(primeQ-1))
+    calc_gcd, ex, ny = euclidean(E_EXPO, (primeP - 1) * (primeQ - 1))
     # make sure d is positive
     d = ex % phi
     print("---- BEGIN PRIVATE KEY ----")
@@ -109,7 +109,7 @@ def getKeys(size):
 
 def main():
     print("#####   Part 1A   #####")
-    bits = int(input("Enter your desired modulus size: "))
+    bits = int(input("Enter your desired modulus size (has to be greater than size of message): "))
     print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes
@@ -138,6 +138,8 @@ def main():
         print("RSA Successful!")
     else:
         print("This shouldn't ever be reached")
+        if bits < 112:
+            print("Error likely because", bits, "is less than the size of the message")
 
 
 if __name__ == "__main__":
