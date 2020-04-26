@@ -6,8 +6,18 @@ CMSC 441 (Design and Analysis of Algorithms)
 
 """
 import random
-import math
 import gmpy2
+import threading
+
+
+class WorkThread(threading.Thread):
+    def __init__(self, ID, n):
+        threading.Thread.__init__(self)
+        self.threadID = ID
+        self.n = n
+
+    def run(self):
+        print(self.threadID, ":", break_primes(self.n))
 
 
 # algorithm adapted from the pollard rho notes
@@ -20,7 +30,7 @@ def pollard_rho(n):
     while True:
         i += 1
         current = gmpy2.powmod(previous, 2, n)
-        d = math.gcd(y - current, n)
+        d = gmpy2.gcd(y - current, n)
         if d != 1 and d != n:
             return d
         if i == k:
@@ -36,14 +46,14 @@ def pollard_p1(n):
     while True:
         i += 1
         bound = gmpy2.powmod(bound, i, n)
-        d = math.gcd(bound - 1, n)
+        d = gmpy2.gcd(bound - 1, n)
         if d != 1 and d != n:
             return d
 
 
 def break_primes(n):
     # check to see if the primes were the same
-    gmpy2.get_context().precision = 2048
+    gmpy2.get_context().precision = 4096
     n_sqrt = gmpy2.sqrt(n)
     if n_sqrt % 1 == 0.0:
         print("Duplicate primes detected!")
@@ -54,11 +64,19 @@ def break_primes(n):
 
 def main():
     print("#####   Part 2   #####")
-    n = 58576306235928344280473587567136561438075843093932299027148729693137092951413
+    n = 14421421868825429441
+    gmpy2.get_context().precision = 4096
     print("Attempting to find factors of", n)
-    pol_res = break_primes(n)
-    print("Factor of n:")
-    print(pol_res)
+
+    thread1 = WorkThread(1, n)
+    thread2 = WorkThread(2, n)
+
+    thread1.start()
+    thread2.start()
+
+    # pol_res = break_primes(n)
+    # print("Factor of n:")
+    # print(pol_res)
 
 
 if __name__ == "__main__":
