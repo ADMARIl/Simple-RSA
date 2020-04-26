@@ -2,7 +2,7 @@
 File: part1a.py
 Created by Andrew Ingson (aings1@umbc.edu)
 Date: 4/22/2020
-CMSC 441 Intro to Algorithms
+CMSC 441 (Design and Analysis of Algorithms)
 Notes: Run the program in a python 3 environment in order to build
 
 """
