@@ -9,15 +9,19 @@ import random
 import gmpy2
 import threading
 
+FOUND = False
+
 
 class WorkThread(threading.Thread):
-    def __init__(self, ID, n):
+    def __init__(self, id, n):
         threading.Thread.__init__(self)
-        self.threadID = ID
+        self.threadID = id
         self.n = n
 
     def run(self):
-        print(self.threadID, ":", break_primes(self.n))
+        result = break_primes(self.n)
+        print(self.threadID, ":", result)
+        return result
 
 
 # algorithm adapted from the pollard rho notes
@@ -64,15 +68,23 @@ def break_primes(n):
 
 def main():
     print("#####   Part 2   #####")
-    n = 14421421868825429441
+    n = 3537768733
     gmpy2.get_context().precision = 4096
     print("Attempting to find factors of", n)
 
     thread1 = WorkThread(1, n)
     thread2 = WorkThread(2, n)
+    thread3 = WorkThread(3, n)
+    thread4 = WorkThread(4, n)
+    thread5 = WorkThread(5, n)
+    thread6 = WorkThread(6, n)
 
     thread1.start()
     thread2.start()
+    thread3.start()
+    thread4.start()
+    thread5.start()
+    print("result", thread6.start())
 
     # pol_res = break_primes(n)
     # print("Factor of n:")
