@@ -20,13 +20,16 @@ processLock = multiprocessing.Lock()
 # algorithm adapted from the pollard rho notes
 def pollard_rho(n, process_id):
     i = 1
-    initial = random.randint(0, n - 1)
+    processLock.acquire()
+    initial = process_id + 2  # this could also be random.randomint(0, n - 1)
+    print("CORE", process_id, "checking rho of", initial)
+    processLock.release()
     y = initial
     k = 2
     previous = initial
     while True:
         i += 1
-        current = gmpy2.powmod(previous, 2, n)
+        current = ((pow(previous, 2)) - 1) % n  # gmpy2.powmod(previous, 2, n)
         d = gmpy2.gcd(y - current, n)
         if d != 1 and d != n:
             processLock.acquire()
@@ -52,9 +55,9 @@ def pollard_p1(n, process_id):
     processLock.acquire()
     print("CORE", process_id, "checking p1 from", start, "to", end)
     processLock.release()
-    q1 = (process_range // 4) * 1
-    q2 = (process_range // 4) * 2
-    q3 = (process_range // 4) * 3
+    q1 = ((process_range // 4) * 1) + start
+    q2 = ((process_range // 4) * 2) + start
+    q3 = ((process_range // 4) * 3) + start
     for i in range(start, end):
         if i == q1:
             print("CORE", process_id, "p1 25%")
@@ -95,7 +98,7 @@ def break_primes(n, process_id):
 
 def main():
     print("#####   Part 2   #####")
-    n = 229835880899213982816673952254807514921
+    n = 537886363560496806725823490578687253
     gmpy2.get_context().precision = 4096
     print("Attempting to find factors of", n)
 

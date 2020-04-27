@@ -128,7 +128,7 @@ def getKeys(size):
 
 def main():
     print("#####   Part 1A   #####")
-    bits = 128 # int(input("Enter your desired modulus size (has to be greater than size of message): "))
+    bits = 120 # int(input("Enter your desired modulus size (has to be greater than size of message): "))
     print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes
