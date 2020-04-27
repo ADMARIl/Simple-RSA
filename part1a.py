@@ -8,6 +8,7 @@ Notes: Run the program in a python 3 environment in order to build
 """
 import random
 import gmpy2
+import math
 
 PRIME = True
 COMPOSITE = False
@@ -66,6 +67,18 @@ def witness(a, n):
     return False
 
 
+# algorithm adapted from the p-1 notes
+def pollard_p1(n):
+    B = n ** (1/6)
+    a = 2
+    for i in range(2, math.floor(B)):
+        a = gmpy2.powmod(a, i, n)
+        d = gmpy2.gcd(a - 1, n)
+        if d > 1:
+            return d
+    return 1
+
+
 def getPrime(size, s):
     # Generate RSA primes
     curr_prime = random.randint((2 ** (size - 1)), (2 ** size) - 1)
@@ -77,6 +90,9 @@ def getPrime(size, s):
     while mr_test(curr_prime, s) != PRIME:
         # print("incrementing prime by 2")
         curr_prime += 2
+    # poll = pollard_p1(curr_prime)
+    # if ((curr_prime - 1) // poll) < poll:
+      #  return getPrime(size, s)
 
     return curr_prime
 
@@ -112,7 +128,7 @@ def getKeys(size):
 
 def main():
     print("#####   Part 1A   #####")
-    bits = int(input("Enter your desired modulus size (has to be greater than size of message): "))
+    bits = 128 # int(input("Enter your desired modulus size (has to be greater than size of message): "))
     print("Modulus size of", bits, "bits selected.")
 
     # Generate RSA primes

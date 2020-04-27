@@ -7,25 +7,18 @@ CMSC 441 (Design and Analysis of Algorithms)
 """
 import random
 import gmpy2
-import threading
+import multiprocessing
+import math
 
-FOUND = False
+FOUND = 0
+PROCESS_COUNT = 24
+PROCESSES = []
 
-
-class WorkThread(threading.Thread):
-    def __init__(self, id, n):
-        threading.Thread.__init__(self)
-        self.threadID = id
-        self.n = n
-
-    def run(self):
-        result = break_primes(self.n)
-        print(self.threadID, ":", result)
-        return result
+processLock = multiprocessing.Lock()
 
 
 # algorithm adapted from the pollard rho notes
-def pollard_rho(n):
+def pollard_rho(n, process_id):
     i = 1
     initial = random.randint(0, n - 1)
     y = initial
@@ -36,6 +29,9 @@ def pollard_rho(n):
         current = gmpy2.powmod(previous, 2, n)
         d = gmpy2.gcd(y - current, n)
         if d != 1 and d != n:
+            processLock.acquire()
+            print(process_id, ":", d)
+            processLock.release()
             return d
         if i == k:
             y = current
@@ -44,18 +40,36 @@ def pollard_rho(n):
 
 
 # algorithm adapted from the p-1 notes
-def pollard_p1(n):
-    i = 1
-    bound = 2
-    while True:
-        i += 1
-        bound = gmpy2.powmod(bound, i, n)
-        d = gmpy2.gcd(bound - 1, n)
+def pollard_p1(n, process_id):
+    # choose a B to start with
+    B = n ** (1 / 6)
+    a = 2
+    # break up how many things we have to check so we can split over cores
+    process_range = (math.floor(B) // PROCESS_COUNT)
+    start = process_range * process_id
+    end = process_range * (process_id + 1) - 1
+    # lock processes so we can print cleanly (thanks 421)
+    processLock.acquire()
+    print("CORE", process_id, "checking p1 from", start, "to", end)
+    processLock.release()
+    q1 = (process_range // 4) * 1
+    q2 = (process_range // 4) * 2
+    q3 = (process_range // 4) * 3
+    for i in range(start, end):
+        if i == q1:
+            print("CORE", process_id, "p1 25%")
+        elif i == q2:
+            print("CORE", process_id, "p1 50%")
+        elif i == q3:
+            print("CORE", process_id, "p1 75%")
+        a = gmpy2.powmod(a, i, n)
+        d = gmpy2.gcd(a - 1, n)
         if d != 1 and d != n:
             return d
+    return 1
 
 
-def break_primes(n):
+def break_primes(n, process_id):
     # check to see if the primes were the same
     gmpy2.get_context().precision = 4096
     n_sqrt = gmpy2.sqrt(n)
@@ -63,32 +77,35 @@ def break_primes(n):
         print("Duplicate primes detected!")
         return n_sqrt
 
-    return pollard_p1(n)
+    p1_result = pollard_p1(n, process_id)
+    if p1_result > 1:
+        print("p1 factor found")
+        for i in range(len(PROCESSES)):
+            if i != process_id:
+                PROCESSES[i].terminate()
+        return p1_result
+
+    rho_result = pollard_rho(n, process_id)
+    print("rho factor found")
+    for i in range(len(PROCESSES)):
+        if i != process_id:
+            PROCESSES[i].terminate()
+    return rho_result
 
 
 def main():
     print("#####   Part 2   #####")
-    n = 3537768733
+    n = 229835880899213982816673952254807514921
     gmpy2.get_context().precision = 4096
     print("Attempting to find factors of", n)
 
-    thread1 = WorkThread(1, n)
-    thread2 = WorkThread(2, n)
-    thread3 = WorkThread(3, n)
-    thread4 = WorkThread(4, n)
-    thread5 = WorkThread(5, n)
-    thread6 = WorkThread(6, n)
+    for i in range(0, PROCESS_COUNT):
+        process = multiprocessing.Process(target=break_primes, args=(n, i,))
+        PROCESSES.append(process)
+        process.start()
 
-    thread1.start()
-    thread2.start()
-    thread3.start()
-    thread4.start()
-    thread5.start()
-    print("result", thread6.start())
-
-    # pol_res = break_primes(n)
-    # print("Factor of n:")
-    # print(pol_res)
+    for i in PROCESSES:
+        i.join()
 
 
 if __name__ == "__main__":
