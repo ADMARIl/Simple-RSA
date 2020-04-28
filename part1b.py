@@ -6,5 +6,6 @@ CMSC 441 (Design and Analysis of Algorithms)
 
 """
 
-n = 1
-print(n)
+# size is 313 bits (supposedly)
+n = 6207034496804283879630919311406969504330524655944955079581115322595987746105035112739268374117
+print("Modulus is", n)

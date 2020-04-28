@@ -16,6 +16,10 @@ PROCESSES = []
 # if true program will print more status info
 DEBUG = True
 
+batch = [10783160063975142709, 9648864860612342737, 10117385428108588001, 16890390968801253569, 14107165842907985249,
+         8904090938501425529, 1875908230631399905033, 419402448961019212085113516255009,
+         6207034496804283879630919311406969504330524655944955079581115322595987746105035112739268374117]
+
 primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
           109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229,
           233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359,
@@ -90,9 +94,6 @@ def pollard_rho(n, process_id):
         current = (((previous ** 2) - 1) % n)
         d = gmpy2.gcd(y - current, n)
         if d != 1 and d != n:
-            processLock.acquire()
-            print(process_id, "rho:", d)
-            processLock.release()
             return d
         if i == k:
             y = current
@@ -109,8 +110,10 @@ def pollard_p1(n, process_id):
     process_range = (math.floor(B) // PROCESS_COUNT)
     start = process_range * process_id
     end = process_range * (process_id + 1) - 1
-    # lock processes so we can print cleanly (thanks 421)
+
+    q1, q2, q3 = 0, 0, 0
     if DEBUG:
+        # lock processes so we can print cleanly (thanks 421)
         processLock.acquire()
         print("CORE", process_id, "checking p1 from", start, "to", end)
         processLock.release()
@@ -133,6 +136,11 @@ def pollard_p1(n, process_id):
 
 
 def break_primes(n, process_id):
+    # check if n is prime
+    if gmpy2.is_prime(n):
+        print("This probably shouldn't happen but n is prime")
+        return n
+
     # check to see if the primes were the same
     gmpy2.get_context().precision = 4096
     n_sqrt = gmpy2.sqrt(n)
@@ -144,17 +152,19 @@ def break_primes(n, process_id):
     for i in range(len(primes)):
         if primes[i] > (n//2):
             break
-        elif n % primes[i] == 0.0:
+        elif gmpy2.f_mod(n, primes[i]) == 0.0:
             print("Trial Division Success! Prime factor is", primes[i])
             for j in range(len(PROCESSES)):
                 if j != process_id:
                     PROCESSES[j].terminate()
             return primes[i]
+    if DEBUG:
+        print("No Trivial")
 
     p1_result = pollard_p1(n, process_id)
     processLock.acquire()
     if p1_result > 1:
-        print("p1 factor found")
+        print(process_id, "p1 factor found:", p1_result)
         for i in range(len(PROCESSES)):
             if i != process_id:
                 PROCESSES[i].terminate()
@@ -162,17 +172,19 @@ def break_primes(n, process_id):
     processLock.release()
 
     rho_result = pollard_rho(n, process_id)
-    print("rho factor found")
+    processLock.acquire()
+    print(process_id, "rho factor found:", rho_result)
     for i in range(len(PROCESSES)):
         if i != process_id:
             # print("terminating", i)
             PROCESSES[i].terminate()
+    processLock.acquire()
     return rho_result
 
 
 def main():
     print("#####   Part 2   #####")
-    n = 44115
+    n = 6207034496804283879630919311406969504330524655944955079581115322595987746105035112739268374117
     gmpy2.get_context().precision = 4096
     print("Attempting to find factors of", n)
 

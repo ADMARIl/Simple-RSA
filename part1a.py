@@ -87,7 +87,7 @@ def getPrime(size, s):
     if curr_prime & 1 == 0:
         curr_prime += 1
     # keep incrementing by 2 till we reach a prime
-    while mr_test(curr_prime, s) != PRIME:
+    while not gmpy2.is_prime(curr_prime) or mr_test(curr_prime, s) != PRIME:
         # print("incrementing prime by 2")
         curr_prime += 2
     # poll = pollard_p1(curr_prime)
