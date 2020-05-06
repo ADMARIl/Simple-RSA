@@ -11,14 +11,15 @@ import multiprocessing
 import math
 import sys
 from datetime import datetime
-import pickle
 
 FOUND = 0
 PROCESS_COUNT = 10
 PROCESSES = []
 # if true program will print more status info
 DEBUG = False
-ECM = False
+# pollard rho can be faster for smaller numbers if you give it a constant to work from instead of letting it randomly
+# choose things. Change this constant to change the threshold for at what bit size it switches over to random
+RHO_CONSTANT = 45
 
 batch = [
     69932668979409860360099534483300713166380796442602437317865308473827266472624636360676346508492947362015264836009509727]
@@ -85,7 +86,7 @@ processLock = multiprocessing.Lock()
 # algorithm adapted from the pollard rho notes
 def pollard_rho(n, process_id):
     i = 1
-    if len(str(n)) < 46:
+    if len(str(n)) < RHO_CONSTANT:
 
         print("non ran")
         initial = process_id + 2
@@ -174,11 +175,12 @@ def william_p1(n, process_id):
 
         d = gmpy2.gcd(current - 2, n)
         if d != 1 and d != n:
+            mult = gmpy2.fac(m)
+            print(d, mult)
+            if gmpy2.f_mod(mult, d):
+                return d
+        else:
             m += 1
-        mult = gmpy2.fac(m)
-        # print(d, mult)
-        if gmpy2.f_mod(mult, d):
-            return d
         if m > work_limit:
             break
 
@@ -255,8 +257,12 @@ def break_primes(n, process_id, sync, output):
         output.put(p1_result)
         sync.set()
         return p1_result
+    if DEBUG:
+        print(process_id, ": p1 no factors")
     processLock.release()
 
+    """
+    # I'm not behaving so i'm disabled
     william = william_p1(n, process_id)
     processLock.acquire()
     if william > 1 and output.empty():
@@ -264,8 +270,10 @@ def break_primes(n, process_id, sync, output):
         output.put(william)
         sync.set()
         return william
-    print("William failure")
+    if DEBUG:
+        print(process_id, ": william no factors")
     processLock.release()
+    """
 
     rho_result = pollard_rho(n, process_id)
     processLock.acquire()
@@ -287,18 +295,11 @@ def main():
     output_q = multiprocessing.Queue()
 
     # check the factors of all numbers in batch
-    modulo = 39432398517316083106207787558038526585654108882546072432267423794215418146472209472768723196471709646861599417229376760594276983640064881038409579981918387916889477892049346641165998769866134797408174816793370441302970168759138667249792435589347798452310960146407241456523151979075373115910844717882601218649
+    modulo = 965559047974929262236726187629751349
 
     print("Attempting to find factors of", modulo)
     bit_size = gmpy2.bit_length(gmpy2.mpz(modulo))
     print("Modulo size:", bit_size)
-
-    if ECM:
-        global prime2
-        with open('prime.data', 'rb') as filehandle:
-            # read the data as binary data stream
-            prime2 = pickle.load(filehandle)
-        print(len(prime2))
 
     curr_time = datetime.now().time()
     print(curr_time)
@@ -323,11 +324,14 @@ def main():
     for i in PROCESSES:
         i.join()
     output_q.put('extra value to make the queue happy')
-    print(output_q.qsize())
+    if DEBUG:
+        print(output_q.qsize())
     result = output_q.get()
-    print(output_q.qsize())
+    if DEBUG:
+        print(output_q.qsize())
     while not output_q.empty():
-        print("Cleaning")
+        if DEBUG:
+            print("Cleaning")
         output_q.get_nowait()
     sync.clear()
     curr_time = datetime.now().time()
