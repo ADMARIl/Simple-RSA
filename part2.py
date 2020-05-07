@@ -3,6 +3,9 @@ File: part2.py
 Created by Andrew Ingson (aings1@umbc.edu)
 Date: 4/26/2020
 CMSC 441 (Design and Analysis of Algorithms)
+Notes: The only non-standard library used for this project would gmpy2. On windows you can use anaconda to get gmpy2
+        otherwise you'll need to run this program on linux so you can install gmpy2 with pip.
+Build/Run Instructions: Run this program with the modulo as a command line argument. E.g. python3 part2.py 58853
 
 """
 import random
@@ -12,18 +15,16 @@ import math
 import sys
 from datetime import datetime
 
-FOUND = 0
-PROCESS_COUNT = 10
+# this constant defines that amount of threads that are generated to crack a modulo
+PROCESS_COUNT = 2
 PROCESSES = []
-# if true program will print more status info
+# if this flag is set to true program will print more status info
 DEBUG = False
 # pollard rho can be faster for smaller numbers if you give it a constant to work from instead of letting it randomly
 # choose things. Change this constant to change the threshold for at what bit size it switches over to random
-RHO_CONSTANT = 45
+RHO_CONSTANT = 150
 
-batch = [
-    69932668979409860360099534483300713166380796442602437317865308473827266472624636360676346508492947362015264836009509727]
-
+# short list of trivial primes
 primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71, 73, 79, 83, 89, 97, 101, 103, 107,
           109, 113, 127, 131, 137, 139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 223, 227, 229,
           233, 239, 241, 251, 257, 263, 269, 271, 277, 281, 283, 293, 307, 311, 313, 317, 331, 337, 347, 349, 353, 359,
@@ -77,25 +78,28 @@ primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67
           7349, 7351, 7369, 7393, 7411, 7417, 7433, 7451, 7457, 7459, 7477, 7481, 7487, 7489, 7499, 7507, 7517, 7523,
           7529, 7537, 7541, 7547, 7549, 7559, 7561, 7573, 7577, 7583, 7589, 7591, 7603, 7607, 7621, 7639, 7643, 7649,
           7669, 7673, 7681, 7687, 7691, 7699, 7703, 7717, 7723, 7727, 7741, 7753, 7757, 7759, 7789, 7793, 7817, 7823]
-
-prime2 = []
-
+# lock to for multi threading so the processes don't step on each others toes
 processLock = multiprocessing.Lock()
 
 
 # algorithm adapted from the pollard rho notes
 def pollard_rho(n, process_id):
     i = 1
-    if len(str(n)) < RHO_CONSTANT:
-
-        print("non ran")
+    # set the point in which rho starts
+    if gmpy2.bit_length(gmpy2.mpz(n)) < RHO_CONSTANT:
+        # small value modulo so we are better off starting with small value
+        if DEBUG:
+            print("bit size", gmpy2.bit_length(gmpy2.mpz(n)), "less than", RHO_CONSTANT, "so non ran")
         initial = process_id + 2
         re_rand = False
     else:
-        print("ran")
+        # small value modulo so we are better off starting with a random value
+        if DEBUG:
+            print("ran")
+        # set a flag so we can re rand rho at a latter point
         re_rand = True
-        initial = random.randint(primes[len(primes) - 1], n // (
-                process_id + 2))  # process_id + 2  # this could also be random.randomint(0, n - 1)
+        # process_id + 2  # this could also be random.randomint(0, n - 1)
+        initial = random.randint(primes[len(primes) - 1], n // (process_id + 2))
     if DEBUG:
         processLock.acquire()
         print("CORE", process_id, "checking rho of", initial)
@@ -133,6 +137,7 @@ def pollard_p1(n, process_id):
     start = process_range * process_id
     end = process_range * (process_id + 1) - 1
 
+    # assign default values here so we are an excellent, coding standard following coder
     q1, q2, q3 = 0, 0, 0
     if DEBUG:
         # lock processes so we can print cleanly (thanks 421)
@@ -143,6 +148,7 @@ def pollard_p1(n, process_id):
         q2 = ((process_range // 4) * 2) + start
         q3 = ((process_range // 4) * 3) + start
     for i in range(start, end):
+        # print informative debug statements
         if DEBUG:
             if i == q1:
                 print("CORE", process_id, "p1 25%")
@@ -150,6 +156,8 @@ def pollard_p1(n, process_id):
                 print("CORE", process_id, "p1 50%")
             elif i == q3:
                 print("CORE", process_id, "p1 75%")
+
+        # check to see if we've found the terminating conditions for p - 1
         a = gmpy2.powmod(a, i, n)
         d = gmpy2.gcd(a - 1, n)
         if d != 1 and d != n:
@@ -160,38 +168,47 @@ def pollard_p1(n, process_id):
 def william_p1(n, process_id):
     # this algorithm technically works but literally none of the modulos were p+1 so idk
     work_limit = pow(n, (1 / 6))
-    m = 3
+    threshold = 3
     previous_sub2 = 2
+    # A needs to be greater than 2 to start with so we therefore start with 3
     A = process_id + 3
     previous = A
-    current = A
 
     counter = 0
-    while counter != m:
+    # if the counter ever reaches m, terminate
+    while counter != threshold:
         counter += 1
+        # current = (a^(current-1) - current-2) % n)
         current = (((A ** previous) - previous_sub2) % n)
+        # move the previous variables forward
         previous_sub2 = previous
         previous = current
 
         d = gmpy2.gcd(current - 2, n)
         if d != 1 and d != n:
-            mult = gmpy2.fac(m)
-            print(d, mult)
+            # calculate the factorial of m
+            mult = gmpy2.fac(threshold)
+            if DEBUG:
+                print(d, mult)
+            # check to see if we've found the terminating conditions for p + 1
             if gmpy2.f_mod(mult, d):
                 return d
         else:
-            m += 1
-        if m > work_limit:
-            break
+            # increment threshold by 1 if we haven't found anything
+            threshold += 1
+        if threshold > work_limit:
+            return 1
 
     return 1
 
 
 def elliptical_curve(n, process_id):
-    # there is no higher definition of pain and suffering than the effort this damn algorithm is taking to implement
+    # I decided not to finish the implementation of this algo as the learning curve for implementation was steep
+    # and not worth it. I left this code here to show that I tried though.
+
     print("Pollard p-1 Part 2: The Lenstra Boogolo")
+    print(process_id, "ECM Called")
     # vars to maintain the generation loop
-    sanity = n
     coor_x, coor_y = 0, 0
     # generate curve
     # TODO: Not sure if these random ranges are correct
@@ -218,10 +235,12 @@ def elliptical_curve(n, process_id):
     return 1
 
 
+# function to handle the factoring of the provided modulo
 def break_primes(n, process_id, sync, output):
     # check to see if the primes were the same
     gmpy2.get_context().precision = 4096
     n_sqrt = gmpy2.sqrt(n)
+    # check to see if the modulo is a perfect square root of itself
     if n_sqrt % 1 == 0.0:
         processLock.acquire()
         if output.empty():
@@ -230,15 +249,19 @@ def break_primes(n, process_id, sync, output):
             print("Duplicate primes detected! Prime is", n_sqrt)
         processLock.release()
         return n_sqrt
-    # processLock.release()
 
     # trial division
     processLock.acquire()
+    # loop through the trivial primes
     for i in range(len(primes)):
+        # check if we've haven't found anything yet
         if output.empty():
+            # the smaller of any factors of modulo has to be less than the sqrt of that modulo so we can give up if we
+            # haven't found anything by then
             if primes[i] > gmpy2.sqrt(n):
                 break
             elif gmpy2.f_mod(n, primes[i]) == 0.0:
+                # share the result and handle the multiprocessing cleanup
                 print("Trial Division Success! Divisible by", primes[i])
                 print("Result is", n // primes[i])
                 output.put(primes[i])
@@ -246,13 +269,16 @@ def break_primes(n, process_id, sync, output):
                 # processLock.release()
                 return primes[i]
     processLock.release()
+    # informative statements
     if DEBUG:
         print("No Trivial")
-    print("nothing easy :(")
+        print("nothing easy :(")
 
+    # check to see if the modulo is vulnerable to pollard p - 1
     p1_result = pollard_p1(n, process_id)
     processLock.acquire()
     if p1_result > 1 and output.empty():
+        # share the result and handle the multiprocessing cleanup
         print(process_id, "p1 factor found:", p1_result)
         output.put(p1_result)
         sync.set()
@@ -261,11 +287,11 @@ def break_primes(n, process_id, sync, output):
         print(process_id, ": p1 no factors")
     processLock.release()
 
-    """
-    # I'm not behaving so i'm disabled
-    william = william_p1(n, process_id)
+    # check to see if the modulo is vulnerable to william p + 1
+    william = 1  # william_p1(n, process_id)
     processLock.acquire()
     if william > 1 and output.empty():
+        # share the result and handle the multiprocessing cleanup
         print("William factor found:", william)
         output.put(william)
         sync.set()
@@ -273,11 +299,12 @@ def break_primes(n, process_id, sync, output):
     if DEBUG:
         print(process_id, ": william no factors")
     processLock.release()
-    """
 
+    # if all else fails try pollard rho on it
     rho_result = pollard_rho(n, process_id)
     processLock.acquire()
     if output.empty():
+        # share the result and handle the multiprocessing cleanup
         print(process_id, "rho factor found:", rho_result)
         output.put_nowait(rho_result)
         sync.set()
@@ -287,6 +314,7 @@ def break_primes(n, process_id, sync, output):
 
 def main():
     print("#####   Part 2   #####")
+    # get the modulo we want to factor from the command line
     n = int(sys.argv[1])
     gmpy2.get_context().precision = 4096
     # variable to monitor when any process finishes
@@ -295,20 +323,21 @@ def main():
     output_q = multiprocessing.Queue()
 
     # check the factors of all numbers in batch
-    modulo = 965559047974929262236726187629751349
+    modulo = n  # 412327469960708624240573
 
     print("Attempting to find factors of", modulo)
     bit_size = gmpy2.bit_length(gmpy2.mpz(modulo))
     print("Modulo size:", bit_size)
 
     curr_time = datetime.now().time()
-    print(curr_time)
+    print("Start Time:", curr_time)
 
     # check if n is prime
     if gmpy2.is_prime(modulo):
         print("This probably shouldn't happen but n is prime", modulo)
-        return
+        return 0
 
+    # start PROCESS_COUNT amount of processes
     for i in range(0, PROCESS_COUNT):
         process = multiprocessing.Process(target=break_primes, args=(modulo, i, sync, output_q))
         PROCESSES.append(process)
@@ -316,27 +345,32 @@ def main():
 
     # wait until any of the processes find something then kill the others
     sync.wait()
-    # processLock.release()
+    # kill the remaining processes once the factor has been found
     for i in PROCESSES:
         if DEBUG:
             print("Killing processes")
         i.terminate()
+    # join processes back to spawning process
     for i in PROCESSES:
         i.join()
     output_q.put('extra value to make the queue happy')
     if DEBUG:
-        print(output_q.qsize())
+        print("Queue Size", output_q.qsize())
+    # get the value back from the process
     result = output_q.get()
     if DEBUG:
-        print(output_q.qsize())
+        print("Queue Size", output_q.qsize())
+    # clean up the queue
     while not output_q.empty():
         if DEBUG:
             print("Cleaning")
         output_q.get_nowait()
     sync.clear()
+    # print ending time
     curr_time = datetime.now().time()
-    print(curr_time)
-    print("Factor of n is:", result)
+    print("End Time:", curr_time)
+    if DEBUG:
+        print("Factor of n is:", result)
 
 
 if __name__ == "__main__":
