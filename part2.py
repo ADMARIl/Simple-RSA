@@ -17,6 +17,7 @@ from datetime import datetime
 
 # this constant defines that amount of threads that are generated to crack a modulo
 PROCESS_COUNT = 2
+# global array to hold all the processes
 PROCESSES = []
 # if this flag is set to true program will print more status info
 DEBUG = False
@@ -115,12 +116,14 @@ def pollard_rho(n, process_id):
         # gmpy2.powmod(pow(previous, 2) - 1, 1, n)  # ((pow(previous, 2)) - 1) % n  #
         current = (((previous ** 2) - 1) % n)
         d = gmpy2.gcd(y - current, n)
+        # check to see if we've found the terminating conditions for rho and we've found a factor
         if d != 1 and d != n:
             return d
         if i == k:
             y = current
             k = 2 * k
         previous = current
+        # check to see if we are in random mode and if we need to re random
         if re_rand and count > 100000:  # (gmpy2.sqrt(n) // primes[len(primes)-1]):
             # print("RE-RAN")
             count = 0
@@ -129,8 +132,11 @@ def pollard_rho(n, process_id):
 
 # algorithm adapted from the p-1 notes
 def pollard_p1(n, process_id):
-    # choose a B to start with
-    work_limit = pow(n, (1 / 6))
+    # choose a B (work limit) to start with
+    if gmpy2.bit_length(gmpy2.mpz(n)) <= 2044:
+        work_limit = pow(n, (1 / 6))
+    else:
+        work_limit = gmpy2.div(n, 27)
     a = 2
     # break up how many things we have to check so we can split over cores
     process_range = (math.floor(work_limit) // PROCESS_COUNT)
@@ -144,6 +150,7 @@ def pollard_p1(n, process_id):
         processLock.acquire()
         print("CORE", process_id, "checking p1 from", start, "to", end)
         processLock.release()
+        # calculate the quarter ranges
         q1 = ((process_range // 4) * 1) + start
         q2 = ((process_range // 4) * 2) + start
         q3 = ((process_range // 4) * 3) + start
@@ -167,7 +174,11 @@ def pollard_p1(n, process_id):
 
 def william_p1(n, process_id):
     # this algorithm technically works but literally none of the modulos were p+1 so idk
-    work_limit = pow(n, (1 / 6))
+    # choose a B (work limit) to start with
+    if gmpy2.bit_length(gmpy2.mpz(n)) <= 2044:
+        work_limit = pow(n, (1 / 6))
+    else:
+        work_limit = gmpy2.div(n, 27)
     threshold = 3
     previous_sub2 = 2
     # A needs to be greater than 2 to start with so we therefore start with 3
@@ -227,7 +238,7 @@ def elliptical_curve(n, process_id):
 
     # range to loop to
     current = 2
-    limit = random.randint(1000000, 100000000)
+    work_limit = random.randint(10000000, 1000000000)
 
     # loop to do the monster math
     # TODO: loop to do the actual ECM stuff
@@ -323,7 +334,7 @@ def main():
     output_q = multiprocessing.Queue()
 
     # check the factors of all numbers in batch
-    modulo = n  # 412327469960708624240573
+    modulo = n
 
     print("Attempting to find factors of", modulo)
     bit_size = gmpy2.bit_length(gmpy2.mpz(modulo))
@@ -353,6 +364,7 @@ def main():
     # join processes back to spawning process
     for i in PROCESSES:
         i.join()
+    # manage the queue so we can get returns from the processes
     output_q.put('extra value to make the queue happy')
     if DEBUG:
         print("Queue Size", output_q.qsize())
