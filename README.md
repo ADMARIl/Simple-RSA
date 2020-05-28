@@ -36,7 +36,16 @@
     ```
   E.g.
     ```bash
-    python2 part2.py 58853
+    python2 part2.py 21421376143373
+    ```
+  Will return:
+    ```bash
+    #####   Part 2   #####
+    Attempting to find factors of 21421376143373
+    Modulo size: 45
+    Start Time: 20:49:42.451780
+    1 p1 factor found: 5071501
+    End Time: 20:49:42.620936
     ```
   
 ## License
