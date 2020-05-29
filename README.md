@@ -32,11 +32,11 @@
   
 * To factor a modulus, run part2 with the modulus as an argument
     ```bash
-    python2 part2.py [modulus]
+    python3 part2.py [modulus]
     ```
   E.g.
     ```bash
-    python2 part2.py 21421376143373
+    python3 part2.py 21421376143373
     ```
   Will return:
     ```bash
